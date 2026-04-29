@@ -1,138 +1,135 @@
-# JWT-validator-lab
-
-
 # JWT Attack Lab
-
-A hands-on security project that demonstrates how JSON Web Tokens (JWTs) can be attacked and defended. This tool validates tokens, forges fake ones, cracks weak secrets, and detects key ID injection attempts.
-
+ 
+A hands-on security tool that demonstrates real-world JWT vulnerabilities — validate tokens, forge signatures, crack weak secrets, and detect key ID injection attacks.
+ 
 ---
-
+ 
 ## Why This Exists
-
-I built this to learn JWT security from scratch. Instead of only reading theory, I implemented the attacks myself. Starting with no Python background, I ended up with a working security tool. You can follow the same path.
-
+ 
+JWT security is best learned by breaking things. This lab implements the attacks directly rather than just reading theory — giving you a working tool and deep intuition for how JWTs can go wrong.
+ 
 ---
-
+ 
 ## Features
-
-| Command       | Purpose                                                      |
-|---------------|--------------------------------------------------------------|
-| `validate`    | Verify JWT signatures and enforce allowed algorithms         |
-| `forge-none`  | Generate an `alg:none` token with a custom payload            |
-| `crack`       | Brute-force weak HMAC secrets using a wordlist                |
-| `check-kid`   | Detect path traversal in the `kid` (key ID) header field      |
-
+ 
+| Command      | What It Does                                              |
+|--------------|-----------------------------------------------------------|
+| `validate`   | Verify JWT signatures and enforce allowed algorithms      |
+| `forge-none` | Generate an `alg:none` token with a custom payload        |
+| `crack`      | Brute-force weak HMAC secrets using a wordlist            |
+| `check-kid`  | Detect path traversal attempts in the `kid` header field  |
+ 
 ---
-
-## Quick Start
-
-### Requirements
-- Python 3.8+
-- pip
-
-### Installation
+ 
+## Installation
+ 
+**Requirements:** Python 3.8+
+ 
 ```bash
 git clone https://github.com/yourusername/jwt-attack-lab.git
 cd jwt-attack-lab
 pip install pyjwt
-
-Usage Examples
-Create a Test Token
-
-bash
+```
+ 
+---
+ 
+## Usage
+ 
+### Create a test token
+```bash
 python -c "import jwt; print(jwt.encode({'user':'alice'}, 'secret123', algorithm='HS256'))"
-Validate a Token
-
-bash
-python main.py validate "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWxpY2UifQ.xyz123" "secret123"
-Forge an alg:none Token
-
-bash
-python main.py forge-none "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWxpY2UifQ.xyz123" '{"user":"admin"}'
-Crack a Weak Secret
-
-bash
+```
+ 
+### Validate a token
+```bash
+python main.py validate "<token>" "secret123"
+```
+ 
+### Forge an alg:none token
+```bash
+python main.py forge-none "<token>" '{"user":"admin"}'
+```
+ 
+### Crack a weak secret
+```bash
 echo "password123" > wordlist.txt
-python main.py crack "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWxpY2UifQ.xyz123" wordlist.txt
-Check for Key ID Injection
-
-bash
-python main.py check-kid "eyJhbGciOiJIUzI1NiIsImtpZCI6Ii4uLy4uL2V0Yy9wYXNzd2QifQ.xyz123"
-Project Structure
-Code
+python main.py crack "<token>" wordlist.txt
+```
+ 
+### Check for key ID injection
+```bash
+python main.py check-kid "<token_with_suspicious_kid>"
+```
+ 
+---
+ 
+## Project Structure
+ 
+```
 jwt_attack_lab/
-├── utils.py         # Base64URL + JSON helpers
+├── main.py          # CLI entry point
 ├── validator.py     # JWT verification logic
 ├── attacker.py      # Attack implementations
-├── main.py          # CLI entry point
-├── tests/           # Sample tokens + wordlists
+├── utils.py         # Base64URL + JSON helpers
+├── tests/           # Sample tokens and wordlists
 └── README.md
-
-
-
-Attack Explanations
-1. alg:none Attack
-Some servers accept alg:none and skip signature checks.
-
-Tool rewrites header to none, removes signature, returns forged token.
-
-2. Weak Secret Cracking
-HMAC JWTs rely on a shared secret.
-
-Tool brute-forces secrets from a wordlist until signature matches.
-
-3. Key ID Injection
-kid header may be used as a file path.
-
-Tool scans for suspicious patterns (../, /etc/, ..\) and flags them.
-
-Core Concepts You’ll Learn
-Base64URL: URL-safe encoding without padding
-
-JSON: Compact representation of claims
-
-SHA256: One-way hash function
-
-HMAC: Keyed hash for authentication
-
-Testing with jwt.io
-Generate tokens with known secrets
-
-Validate them using this tool
-
-Try weak secrets and crack them
-
-Create alg:none tokens and confirm rejection
-
-A full testing guide is included in tests/.
-
-Limitations
-Supports only HS256
-
-No expiration (exp, nbf) checks
-
-No RS256/ES256 support
-
-Kid detection is pattern-based only
-
-Roadmap
-RS256 verification + algorithm confusion attack
-
-Expiration and audience claim validation
-
-JWKS parsing
-
-Automated scanner mode
-
-Burp Suite extension
-
-References
-RFC 7519 – JWT Specification (datatracker.ietf.org in Bing)
-
-PortSwigger Web Security Academy JWT labs
-
-PyJWT documentation
-
-Code
-
-This version is concise, structured, and ready to drop into a GitHub repo as `README.md`
+```
+ 
+---
+ 
+## Attack Explanations
+ 
+### 1. `alg:none` Attack
+Some servers blindly accept `alg:none` and skip signature verification entirely. This tool rewrites the header algorithm to `none`, strips the signature, and returns a forged token accepted by vulnerable servers.
+ 
+### 2. Weak Secret Cracking
+HMAC-signed JWTs (`HS256`) are only as strong as their secret. Given a wordlist, this tool recomputes the signature for each candidate and flags the match — exposing how easily guessable secrets compromise the entire token.
+ 
+### 3. Key ID (`kid`) Injection
+The `kid` header field is sometimes passed directly into file path lookups. This tool scans for path traversal patterns (`../`, `/etc/`, `..\`) in the `kid` value and flags suspicious tokens before they reach your verification logic.
+ 
+---
+ 
+## Core Concepts
+ 
+| Concept    | Role in JWTs                                  |
+|------------|-----------------------------------------------|
+| Base64URL  | URL-safe encoding used for header and payload |
+| JSON       | Compact key-value structure for claims        |
+| SHA-256    | One-way hash function underlying HMAC         |
+| HMAC       | Keyed hash that authenticates the signature   |
+ 
+---
+ 
+## Testing with jwt.io
+ 
+1. Generate a token with a known secret
+2. Validate it using this tool
+3. Try weak secrets — then crack them
+4. Create an `alg:none` token and confirm it gets rejected
+A full testing walkthrough is in `tests/`.
+ 
+---
+ 
+## Current Limitations
+ 
+- Supports HS256 only
+- No expiration (`exp`, `nbf`) or audience (`aud`) validation
+- No RS256 / ES256 support
+- `kid` detection is pattern-based, not structural
+---
+ 
+## Roadmap
+ 
+- [ ] RS256 verification + algorithm confusion attack
+- [ ] Expiration and audience claim validation
+- [ ] JWKS endpoint parsing
+- [ ] Automated scanner mode
+- [ ] Burp Suite extension
+---
+ 
+## References
+ 
+- [RFC 7519 — JWT Specification](https://datatracker.ietf.org/doc/html/rfc7519)
+- [PortSwigger Web Security Academy — JWT Labs](https://portswigger.net/web-security/jwt)
+- [PyJWT Documentation](https://pyjwt.readthedocs.io/)
